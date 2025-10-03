@@ -175,15 +175,15 @@ pub unsafe fn register_foreign_in_module(
         panic!("supplied a meta argument that is not of equal length to the arity");
     }
 
-    // We get a handle to the read guard of initialization state.
-    // This ensures that we're either in the pre-initialization state
-    // or the post-initialization state, but not currently
-    // initializing.
-    // if unitialized, no further checks are needed.
-    // but if initialized, we need to ensure we're actually on an engine currently.
-    if is_swipl_initialized() && current_engine_ptr().is_null() {
-        panic!("Tried to register a foreign predicate in a context where swipl is initialized, but no engine is active.");
-    }
+    //// We get a handle to the read guard of initialization state.
+    //// This ensures that we're either in the pre-initialization state
+    //// or the post-initialization state, but not currently
+    //// initializing.
+    //// if unitialized, no further checks are needed.
+    //// but if initialized, we need to ensure we're actually on an engine currently.
+    //if is_swipl_initialized() && current_engine_ptr().is_null() {
+    //    panic!("Tried to register a foreign predicate in a context where swipl is initialized, but no engine is active.");
+    //}
 
     let c_module = module.map(|module| CString::new(module).unwrap());
     let c_name = CString::new(name).unwrap();

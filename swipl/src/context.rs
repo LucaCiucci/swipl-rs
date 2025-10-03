@@ -67,6 +67,7 @@ use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 use std::convert::TryInto;
 use std::mem::MaybeUninit;
+use std::ops::Not;
 
 use swipl_macros::pred;
 
@@ -145,13 +146,13 @@ impl<'a> std::ops::Deref for ExceptionTerm<'a> {
 pub struct Context<'a, T: ContextType> {
     parent: Option<&'a dyn ContextParent>,
     pub context: T,
-    engine: PL_engine_t,
+    engine: Option<PL_engine_t>,
     activated: Cell<bool>,
     exception_handling: Cell<bool>,
 }
 
 impl<'a, T: ContextType> Context<'a, T> {
-    unsafe fn new_activated_without_parent(context: T, engine: PL_engine_t) -> Self {
+    unsafe fn new_activated_without_parent(context: T, engine: Option<PL_engine_t>) -> Self {
         Context {
             parent: None,
             context,
@@ -164,7 +165,7 @@ impl<'a, T: ContextType> Context<'a, T> {
     pub(crate) unsafe fn new_activated<'b, T2: ContextType>(
         parent: &'a Context<'b, T2>,
         context: T,
-        engine: PL_engine_t,
+        engine: Option<PL_engine_t>,
     ) -> Self {
         Context {
             parent: Some(parent as &dyn ContextParent),
@@ -194,7 +195,7 @@ impl<'a, T: ContextType> Context<'a, T> {
     }
 
     /// Returns the underlying engine pointer.
-    pub fn engine_ptr(&self) -> PL_engine_t {
+    pub fn engine_ptr(&self) -> Option<PL_engine_t> {
         self.engine
     }
 
@@ -384,7 +385,7 @@ impl<'a> From<EngineActivation<'a>> for Context<'a, ActivatedEngine<'a>> {
             _activation: activation,
         };
 
-        unsafe { Context::new_activated_without_parent(context, engine) }
+        unsafe { Context::new_activated_without_parent(context, Some(engine)) }
     }
 }
 
@@ -419,11 +420,7 @@ unsafe impl ContextType for Unmanaged {}
 pub unsafe fn unmanaged_engine_context() -> Context<'static, Unmanaged> {
     let current = current_engine_ptr();
 
-    if current.is_null() {
-        panic!("tried to create an unmanaged engine context, but no engine is active");
-    }
-
-    Context::new_activated_without_parent(Unmanaged { _x: () }, current)
+    Context::new_activated_without_parent(Unmanaged { _x: () }, current.is_null().not().then(|| current))
 }
 
 enum FrameState {

@@ -94,7 +94,7 @@ impl<'a> Term<'a> {
         self.term
     }
 
-    pub fn origin_engine_ptr(&self) -> PL_engine_t {
+    pub fn origin_engine_ptr(&self) -> Option<PL_engine_t> {
         self.origin.origin_engine_ptr()
     }
 
@@ -152,8 +152,10 @@ impl<'a> Term<'a> {
 
     /// Assert that the engine where this term was originally created is the active engine on this thread.
     pub fn assert_term_handling_possible(&self) {
-        if !self.origin.is_engine_active() {
-            panic!("term is not part of the active engine");
+        if let Some(active) = self.origin.is_engine_active() {
+            if !active {
+                panic!("term is not part of the active engine");
+            }
         }
     }
 
@@ -534,12 +536,12 @@ impl<'a> Eq for Term<'a> {}
 
 #[derive(Clone)]
 pub(crate) struct TermOrigin<'a> {
-    engine: PL_engine_t,
+    engine: Option<PL_engine_t>,
     _lifetime: std::marker::PhantomData<&'a ()>,
 }
 
 impl<'a> TermOrigin<'a> {
-    pub unsafe fn new(engine: PL_engine_t) -> Self {
+    pub unsafe fn new(engine: Option<PL_engine_t>) -> Self {
         Self {
             engine,
             _lifetime: Default::default(),
@@ -551,11 +553,11 @@ unsafe impl<'a> Send for TermOrigin<'a> {}
 unsafe impl<'a> Sync for TermOrigin<'a> {}
 
 impl<'a> TermOrigin<'a> {
-    pub fn is_engine_active(&self) -> bool {
-        is_engine_active(self.engine)
+    pub fn is_engine_active(&self) -> Option<bool> {
+        self.engine.map(|e| is_engine_active(e))
     }
 
-    pub fn origin_engine_ptr(&self) -> PL_engine_t {
+    pub fn origin_engine_ptr(&self) -> Option<PL_engine_t> {
         self.engine
     }
 }
