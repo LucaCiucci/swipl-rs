@@ -123,7 +123,7 @@ pub fn into_prolog_result(b: bool) -> PrologResult<()> {
 /// Return a failure.
 ///
 /// This is a shorthand for `Err(PrologError::Failure)`.
-pub fn fail() -> PrologResult<()> {
+pub fn fail<T>() -> PrologResult<T> {
     Err(PrologError::Failure)
 }
 
