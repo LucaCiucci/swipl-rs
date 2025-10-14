@@ -589,7 +589,16 @@ impl<'de, C: QueryableContextType> de::Deserializer<'de> for Deserializer<'de, C
         V: Visitor<'de>,
     {
         let cleanup_term = self.context.new_term_ref();
-        let iter = self.context.term_list_iter(&self.term);
+        let term;
+        let term = if self.term.term_type() == TermType::CompoundTerm {
+            let compound_terms = self.context.compound_terms_vec(&self.term).unwrap();
+            assert_eq!(compound_terms.len(), 1);
+            term = compound_terms.into_iter().next().unwrap();
+            &term
+        } else {
+            &self.term
+        };
+        let iter = self.context.term_list_iter(term);
         let result = visitor.visit_seq(ListSeqAccess {
             context: self.context,
             iter,
