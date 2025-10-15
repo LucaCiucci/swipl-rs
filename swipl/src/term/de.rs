@@ -581,7 +581,16 @@ impl<'de, C: QueryableContextType> de::Deserializer<'de> for Deserializer<'de, C
                 self.deserialize_string(visitor)
             }
         } else {
-            visitor.visit_newtype_struct(self)
+            if attempt(self.term.unify(Functor::new(name, 1)))? {
+                let [term] = attempt_opt(self.context.compound_terms(&self.term))?.expect("having just unified the functor with arity 1, retrieving its argument list should have been possible");
+                let inner_de = Deserializer {
+                    context: self.context,
+                    term,
+                };
+                visitor.visit_newtype_struct(inner_de)
+            } else {
+                Err(Error::UnificationFailed)
+            }
         }
     }
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
